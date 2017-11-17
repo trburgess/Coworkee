@@ -1,9 +1,9 @@
 "use strict";
 
-var errors = require('../utils/errors');
+var errors  = require('../utils/errors');
 var helpers = require('../utils/helpers.js');
 
-module.exports = function(sequelize, DataTypes) {
+module.exports = function (sequelize, DataTypes) {
     var Model = sequelize.define("Person", {
         id: {
             type: DataTypes.UUID,
@@ -86,7 +86,7 @@ module.exports = function(sequelize, DataTypes) {
         picture: {
             type: DataTypes.STRING,
             allowNull: true,
-            get: function() {
+            get: function () {
                 return helpers.apiUrl + this.getDataValue('picture');
             }
         },
@@ -119,31 +119,32 @@ module.exports = function(sequelize, DataTypes) {
         },
 
         classMethods: {
-            associate: function(models) {
-                Model.belongsTo(models.Organization, { as: 'organization' });
-                Model.belongsTo(models.Office, { as: 'office' });
-                Model.hasMany(models.Action, { as: 'actions' });
+            associate: function (models) {
+                Model.belongsTo(models.Organization, {as: 'organization'});
+                Model.belongsTo(models.Office, {as: 'office'});
+                Model.hasMany(models.Action, {as: 'actions'});
                 Model.addScope('nested', {
                     attributes: {
                         exclude: ['password']
                     },
                     include: [
-                        { model: models.Office.scope('nested'), as: 'office' },
-                        { model: models.Organization.scope('nested'), as: 'organization' }
+                        {model: models.Office.scope('nested'), as: 'office'},
+                        {model: models.Organization.scope('nested'), as: 'organization'}
                     ]
                 });
+                Model.addScope('auth', {});
             },
 
-            lookup: function(identifier) {
+            lookup: function (identifier) {
                 return this.findOne({
                     where: {
                         $or: [
-                            { id: identifier },
-                            { username: identifier },
-                            { email: identifier }
+                            {id: identifier},
+                            {username: identifier},
+                            {email: identifier}
                         ]
                     }
-                }).then(function(row) {
+                }).then(function (row) {
                     if (!row) {
                         throw errors.generate('Unknown person with id/username/email: ' + identifier);
                     }
@@ -151,6 +152,18 @@ module.exports = function(sequelize, DataTypes) {
                     return row;
                 });
             }
+        }
+    });
+    Model.beforeCreate(function (model, options) {
+        return helpers.hashCreate(model.password).then(function(hashedPassword) {
+            model.password = hashedPassword;
+        });
+    });
+    Model.beforeUpdate(function (model, options) {
+        if (model.password) {
+            return helpers.hashCreate(model.password).then(function (hashedPassword) {
+                model.password = hashedPassword;
+            });
         }
     });
 
