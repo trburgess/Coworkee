@@ -1,6 +1,7 @@
 "use strict";
 
 var config = require('../utils/config');
+var bcrypt = require('bcrypt');
 
 var Helpers = {
 
@@ -38,6 +39,14 @@ var Helpers = {
         return sequelize.literal(attributes.map(function(value) {
             return sequelize.escape(sequelize.col(value))
         }).join(' || " " || '));
+    },
+
+    hashCreate: function(string) {
+        return bcrypt.hash(string, 10);
+    },
+
+    hashCompareSync: function(string, hash) {
+        return bcrypt.compareSync(string, hash);
     },
 
     sequelizify: function(params, model, defaults) {
